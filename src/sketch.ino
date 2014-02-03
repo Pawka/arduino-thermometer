@@ -17,6 +17,7 @@ bool DEBUG = true;
 
 int resetStatus = 0; //Button status
 int runStatus = 0; //Button status
+long int _loop = 0;
 
 void setup()
 {
@@ -36,14 +37,18 @@ void loop()
 
     if (true == RUN) {
         digitalWrite(LED_PIN, LOW);
-        int temp = getTemperature();
-        storeTemperature(temp);
+
+        if (_loop >= 60 * DELAY_MINS) {
+            int temp = getTemperature();
+            storeTemperature(temp);
+            _loop = 0;
+        }
     } else {
         //Turn on LED when stopped.
         digitalWrite(LED_PIN, HIGH);
     }
-    /*delay(1000);*/
-    delay(6000L * DELAY_MINS);
+    delay(1000);
+    _loop++;
 }
 
 /**
