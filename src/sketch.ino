@@ -6,31 +6,44 @@ dht11 DHT11;
 int EEPROM_ADDR = 0; //Current EEPROM address for write.
 int EEPROM_END_VALUE = 255; //Describes end of data sequence.
 int EEPROM_SIZE = 1024;
-int PIN = 13; //Info pin id.
 int DELAY_MINS = 10;
 
+int LED_PIN = 13; //Info pin id.
+int BUTTON_RESET_PIN = 8;
+int BUTTON_RUN_PIN = 9;
+
 bool RUN = false; //Stop monitoring by default.
+bool DEBUG = true;
+
+int resetStatus = 0; //Button status
+int runStatus = 0; //Button status
 
 void setup()
 {
     DHT11.attach(2);
-    pinMode(PIN, OUTPUT);
     Serial.begin(9600);
     EEPROM_ADDR = getDataSize();
+
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(BUTTON_RESET_PIN, INPUT);
+    pinMode(BUTTON_RUN_PIN, INPUT);
 }
 
 void loop()
 {
+    handleResetButton();
+    handleToggleButton();
+
     if (true == RUN) {
-        digitalWrite(PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
         int temp = getTemperature();
         storeTemperature(temp);
     } else {
         //Turn on LED when stopped.
-        digitalWrite(PIN, HIGH);
+        digitalWrite(LED_PIN, HIGH);
     }
-    delay(1000);
-    /*delay(6000L * DELAY_MINS);*/
+    /*delay(1000);*/
+    delay(6000L * DELAY_MINS);
 }
 
 /**
@@ -106,6 +119,10 @@ void commandReset()
 
     //Write end value to start of memory.
     EEPROM.write(0, EEPROM_END_VALUE);
+
+    if (DEBUG) {
+        Serial.println("> RESET");
+    }
 }
 
 /**
@@ -113,8 +130,11 @@ void commandReset()
  */
 void commandReadData()
 {
-    Serial.print("Length: ");
-    Serial.println(EEPROM_ADDR);
+    if (DEBUG) {
+        Serial.println("> READ");
+        Serial.print("Length: ");
+        Serial.println(EEPROM_ADDR);
+    }
     for (int i = 0; i <= getDataSize(); i++) {
         Serial.println(EEPROM.read(i));
     }
@@ -125,9 +145,40 @@ void commandReadData()
  */
 void commandToggleMonitoring()
 {
+    if (DEBUG) {
+        Serial.println("> TOGGLE RUN");
+    }
     if (RUN == true) {
         RUN = false;
     } else {
         RUN = true;
+    }
+}
+
+/**
+ * Handle reset button
+ */
+void handleResetButton() {
+    int status = digitalRead(BUTTON_RESET_PIN);
+    if (status != resetStatus) {
+        resetStatus = status;
+
+        if (status == 1) {
+            commandReset();
+        }
+    }
+}
+
+/**
+ * Handle toggle run button
+ */
+void handleToggleButton() {
+    int status = digitalRead(BUTTON_RUN_PIN);
+    if (status != runStatus) {
+        runStatus = status;
+
+        if (status == 1) {
+            commandToggleMonitoring();
+        }
     }
 }
