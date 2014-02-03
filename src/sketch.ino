@@ -5,8 +5,11 @@ dht11 DHT11;
 
 int EEPROM_ADDR = 0; //Current EEPROM address for write.
 int EEPROM_END_VALUE = 255; //Describes end of data sequence.
-int EEPROM_SIZE = 10;
+int EEPROM_SIZE = 1024;
 int PIN = 13; //Info pin id.
+int DELAY_MINS = 10;
+
+bool RUN = false; //Stop monitoring by default.
 
 void setup()
 {
@@ -14,14 +17,20 @@ void setup()
     pinMode(PIN, OUTPUT);
     Serial.begin(9600);
     EEPROM_ADDR = getDataSize();
-    Serial.println(EEPROM_ADDR);
 }
 
 void loop()
 {
-    int temp = getTemperature();
-    storeTemperature(temp);
+    if (true == RUN) {
+        digitalWrite(PIN, LOW);
+        int temp = getTemperature();
+        storeTemperature(temp);
+    } else {
+        //Turn on LED when stopped.
+        digitalWrite(PIN, HIGH);
+    }
     delay(1000);
+    /*delay(6000L * DELAY_MINS);*/
 }
 
 /**
@@ -63,14 +72,12 @@ void storeTemperature(int value)
 {
     //Write until memory is full. Leave last byte for end value.
     if (EEPROM_ADDR < EEPROM_SIZE - 1) {
-        digitalWrite(PIN, LOW);
         EEPROM.write(EEPROM_ADDR, value);
         EEPROM_ADDR++;
 
         EEPROM.write(EEPROM_ADDR, EEPROM_END_VALUE);
     } else {
-        //Turn on pin when memory is full.
-        digitalWrite(PIN, HIGH);
+        RUN = false;
     }
 }
 
@@ -118,5 +125,9 @@ void commandReadData()
  */
 void commandToggleMonitoring()
 {
-    //@todo implement.
+    if (RUN == true) {
+        RUN = false;
+    } else {
+        RUN = true;
+    }
 }
